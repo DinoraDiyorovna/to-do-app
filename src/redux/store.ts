@@ -11,7 +11,6 @@ const loadFromLocalStorage = <T,>(key: string): T => {
   }
 };
 
-
 const saveToLocalStorage = (key: string, data: unknown) => {
   try {
     localStorage.setItem(key, JSON.stringify(data));
@@ -22,15 +21,25 @@ const saveToLocalStorage = (key: string, data: unknown) => {
 
 
 const initialProjects = loadFromLocalStorage<{ id: string; name: string }[]>("projects");
-const initialTasks = loadFromLocalStorage<{ id: string; projectId: string; title: string; description: string; status: string }[]>("tasks");
+const initialTasks = loadFromLocalStorage<{
+  id: string;
+  projectId: string;
+  title: string;
+  description: string;
+  status: string;
+  subtasks: { id: string; title: string }[];
+}[]>("tasks");
 
 type Action =
   | { type: "LOAD_PROJECTS"; payload: { id: string; name: string }[] } 
+  | { type: "LOAD_TASKS"; payload: { id: string; projectId: string; title: string; description: string; status: string }[] } 
   | { type: "ADD_PROJECT"; payload: string }
   | { type: "DELETE_PROJECT"; payload: string }
   | { type: "ADD_TASK"; payload: { projectId: string; title: string; description: string } }
   | { type: "UPDATE_TASK_STATUS"; payload: { taskId: string; status: string } }
-  | { type: "DELETE_TASK"; payload: string };
+  | { type: "DELETE_TASK"; payload: string }
+  | { type: "ADD_SUBTASK"; payload: { taskId: string; title: string } } 
+  | { type: "EDIT_TASK"; payload: { taskId: string; title: string; description: string } }
 
 
 const projectsReducer = (state = initialProjects, action: Action) => { 
@@ -57,6 +66,9 @@ const projectsReducer = (state = initialProjects, action: Action) => {
 
 const tasksReducer = (state = initialTasks, action: Action) => {
   switch (action.type) {
+    case "LOAD_TASKS":
+      return action.payload;
+
     case "ADD_TASK":
       const newTask = {
         id: Date.now().toString(),
@@ -64,6 +76,7 @@ const tasksReducer = (state = initialTasks, action: Action) => {
         title: action.payload.title,
         description: action.payload.description,
         status: "queue",
+        subtasks: [],
       };
       const updatedTasks = [...state, newTask];
       saveToLocalStorage("tasks", updatedTasks);
@@ -76,16 +89,31 @@ const tasksReducer = (state = initialTasks, action: Action) => {
       saveToLocalStorage("tasks", changedTasks);
       return changedTasks;
 
-    case "DELETE_TASK":
-      const filteredTasks = state.filter((task) => task.id !== action.payload);
-      saveToLocalStorage("tasks", filteredTasks);
-      return filteredTasks;
+    case "EDIT_TASK":
+      const editedTasks = state.map((task) =>
+        task.id === action.payload.taskId
+          ? { ...task, title: action.payload.title, description: action.payload.description }
+          : task
+      );
+      saveToLocalStorage("tasks", editedTasks);
+      return editedTasks;
+
+    case "ADD_SUBTASK":
+      const tasksWithSubtask = state.map((task) =>
+        task.id === action.payload.taskId
+          ? {
+              ...task,
+              subtasks: [...task.subtasks, { id: Date.now().toString(), title: action.payload.title }],
+            }
+          : task
+      );
+      saveToLocalStorage("tasks", tasksWithSubtask);
+      return tasksWithSubtask;
 
     default:
       return state;
   }
 };
-
 
 export const rootReducer = combineReducers({
   projects: projectsReducer,

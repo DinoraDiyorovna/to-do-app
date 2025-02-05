@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom'; 
 import { HomePage } from './pages/HomePage/HomePage';
 import ProjectSelectionPage from './pages/ProjectSelectionPage';
@@ -9,7 +8,7 @@ const App = () => (
     <Routes> 
       <Route path="/" element={<HomePage />} />
       <Route path="/projects" element={<ProjectSelectionPage />} /> 
-      <Route path="/tasks" element={<TasksPage />} /> 
+      <Route path="/tasks/:projectId" element={<TasksPage />} /> 
     </Routes>
  
 );
